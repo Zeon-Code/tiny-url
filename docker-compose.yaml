@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres-primary:
+    image: bitnami/postgresql:latest
+    container_name: pg-primary
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRESQL_REPLICATION_MODE: master
+      POSTGRESQL_REPLICATION_USER: repl_user
+      POSTGRESQL_REPLICATION_PASSWORD: repl_pass
+      POSTGRESQL_USERNAME: postgres
+      POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_DATABASE: tiny_url
+    volumes:
+      - primary_data:/bitnami/postgresql
+
+  postgres-replica:
+    image: bitnami/postgresql:latest
+    container_name: pg-replica
+    ports:
+      - "5433:5432"
+    depends_on:
+      - postgres-primary
+    environment:
+      POSTGRESQL_REPLICATION_MODE: slave
+      POSTGRESQL_REPLICATION_USER: repl_user
+      POSTGRESQL_REPLICATION_PASSWORD: repl_pass
+      POSTGRESQL_MASTER_HOST: postgres-primary
+      POSTGRESQL_MASTER_PORT_NUMBER: 5432
+      POSTGRESQL_PASSWORD: postgres
+    volumes:
+      - replica_data:/bitnami/postgresql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+  primary_data:
+  replica_data:

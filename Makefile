@@ -1,6 +1,38 @@
+# Database
+export DB_NAME ?= tiny_url
+export DB_HOST ?= localhost
+export DB_USER ?= tiny_url
+export DB_PASSWORD ?= postgres
+export DB_PORT ?= 5432
+export DB_TLS_MODE ?= false
+
+# Cache
+export CACHE_NAME ?= 0
+export CACHE_HOST ?= localhost
+export CACHE_PORT ?= 6379
+export CACHE_PASSWORD ?=
+
 .PHONY: new-migration
+
+dev:
+	@go run cmd/api/main.go
+
+api-create-urls:
+	@echo "Usage example, make api-create-urls"
+	@curl -X POST "localhost:8080/api/v1/url/" --json '{"target":"https://google.com"}'
+
+api-get-by-id:
+	@echo "Usage example, make api-get-by-id id=1"
+	@curl "localhost:8080/api/v1/url/$(id)" -H "Content-Type: application/json"
+
+api-list-urls:
+	@echo "Usage example, make api-list-urls"
+	@curl "localhost:8080/api/v1/url/" -H "Content-Type: application/json"
 
 new-migration:
 	@echo "This command requires goloang migrate; https://github.com/golang-migrate/migrate"
 	@echo "Usage example, make new-migration name=create_urls_table"
 	@migrate create -ext sql -dir migration -seq $(name)
+
+migrate:
+	@migrate -database "postgres://postgres:postgres@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable" -path ./migration/ up
