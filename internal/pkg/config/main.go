@@ -18,11 +18,11 @@ func (c AppConfiguration) Cache() DatabaseConfiguration {
 }
 
 func (c AppConfiguration) PrimaryDatabase() DatabaseConfiguration {
-	return newPostgresConfig("DB")
+	return NewPostgresConfig("DB")
 }
 
 func (c AppConfiguration) ReplicaDatabase() DatabaseConfiguration {
-	return newPostgresConfig("DB_REPLICA")
+	return NewPostgresConfig("DB_REPLICA")
 }
 
 func (c AppConfiguration) Log() Log {

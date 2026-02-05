@@ -28,7 +28,13 @@ type RedisClient struct {
 }
 
 func newRedisClient(c config.DatabaseConfiguration, m metric.MetricClient, l *slog.Logger) (*RedisClient, error) {
-	opt, err := redis.ParseURL(c.GetDNS())
+	dns, err := c.GetDNS()
+
+	if err != nil {
+		return nil, err
+	}
+
+	opt, err := redis.ParseURL(dns)
 
 	if err != nil {
 		return nil, err
