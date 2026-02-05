@@ -97,7 +97,13 @@ type PostgresClient struct {
 }
 
 func newPostgresClient(c config.DatabaseConfiguration, m metric.MetricClient, l *slog.Logger) (SQLClient, error) {
-	backend, err := sqlx.Connect(c.GetDriver(), c.GetDNS())
+	dns, err := c.GetDNS()
+
+	if err != nil {
+		return nil, err
+	}
+
+	backend, err := sqlx.Connect(c.GetDriver(), dns)
 
 	if err != nil {
 		return nil, mapDBError(err)
