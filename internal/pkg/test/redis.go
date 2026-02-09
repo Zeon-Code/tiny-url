@@ -49,6 +49,10 @@ func (r *FakeRedis) SetNX(ctx context.Context, key string, value interface{}, ex
 	return redis.NewBoolResult(v, r.Err)
 }
 
+func (r *FakeRedis) Close() error {
+	return nil
+}
+
 func NewFakeRedisBackend() *FakeRedis {
 	return &FakeRedis{}
 }

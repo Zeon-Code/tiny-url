@@ -18,7 +18,7 @@ func TestUrlRepository(t *testing.T) {
 
 	t.Run("list urls", func(t *testing.T) {
 		fake := test.NewFakeDependencies()
-		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), nil)
+		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), fake.Observer())
 		query := "SELECT id, code, target FROM urls ORDER BY id DESC LIMIT $1"
 
 		rows := sqlmock.NewRows([]string{"id", "code", "target"}).
@@ -40,7 +40,7 @@ func TestUrlRepository(t *testing.T) {
 		cursor := int64(8888)
 		fake := test.NewFakeDependencies()
 
-		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), nil)
+		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), fake.Observer())
 		query := "SELECT id, code, target FROM urls WHERE id > $1 ORDER BY id DESC LIMIT $2"
 
 		rows := sqlmock.NewRows([]string{"id", "code", "target"})
@@ -55,7 +55,7 @@ func TestUrlRepository(t *testing.T) {
 	t.Run("list urls with cursor", func(t *testing.T) {
 		cursor := int64(1)
 		fake := test.NewFakeDependencies()
-		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), nil)
+		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), fake.Observer())
 		query := "SELECT id, code, target FROM urls WHERE id > $1 ORDER BY id DESC LIMIT $2"
 
 		rows := sqlmock.NewRows([]string{"id", "code", "target"}).
@@ -76,7 +76,7 @@ func TestUrlRepository(t *testing.T) {
 		now := time.Now()
 		target := "target"
 		fake := test.NewFakeDependencies()
-		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), nil)
+		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), fake.Observer())
 
 		updateQuery := "UPDATE urls SET code = $1 WHERE id = $2"
 		insertQuery := "INSERT INTO urls (target, code) VALUES ($1, '') RETURNING id, target, code, created_at, updated_at"
@@ -99,7 +99,7 @@ func TestUrlRepository(t *testing.T) {
 		target := "target"
 		fake := test.NewFakeDependencies()
 
-		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), nil)
+		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), fake.Observer())
 		insertQuery := "INSERT INTO urls (target, code) VALUES ($1, '') RETURNING id, target, code, created_at, updated_at"
 
 		fake.DBMock.ExpectBegin()
@@ -117,7 +117,7 @@ func TestUrlRepository(t *testing.T) {
 		target := "target"
 		fake := test.NewFakeDependencies()
 
-		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), nil)
+		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), fake.Observer())
 		updateQuery := "UPDATE urls SET code = $1 WHERE id = $2"
 		insertQuery := "INSERT INTO urls (target, code) VALUES ($1, '') RETURNING id, target, code, created_at, updated_at"
 
@@ -140,7 +140,7 @@ func TestUrlRepository(t *testing.T) {
 		target := "target"
 		fake := test.NewFakeDependencies()
 
-		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), nil)
+		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), fake.Observer())
 		updateQuery := "UPDATE urls SET code = $1 WHERE id = $2"
 		insertQuery := "INSERT INTO urls (target, code) VALUES ($1, '') RETURNING id, target, code, created_at, updated_at"
 
@@ -162,7 +162,7 @@ func TestUrlRepository(t *testing.T) {
 	t.Run("get by id", func(t *testing.T) {
 		now := time.Now()
 		fake := test.NewFakeDependencies()
-		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), nil)
+		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), fake.Observer())
 		query := "SELECT * FROM urls WHERE id = $1"
 
 		rows := sqlmock.NewRows([]string{"id", "code", "target", "created_at", "updated_at"}).
@@ -177,7 +177,7 @@ func TestUrlRepository(t *testing.T) {
 
 	t.Run("get by id when not found", func(t *testing.T) {
 		fake := test.NewFakeDependencies()
-		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), nil)
+		repo := repository.NewURLRepository(fake.DB(), fake.Memory(), fake.Observer())
 		query := "SELECT * FROM urls WHERE id = $1"
 
 		rows := sqlmock.NewRows([]string{"id", "code", "target", "created_at", "updated_at"})
@@ -186,6 +186,6 @@ func TestUrlRepository(t *testing.T) {
 		url, err := repo.GetByID(ctx, int64(4))
 
 		assert.Nil(t, url)
-		assert.Equal(t, db.ErrDBNotFound, err)
+		assert.Equal(t, db.ErrDBResourceNotFound, err)
 	})
 }

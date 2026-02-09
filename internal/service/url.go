@@ -2,11 +2,11 @@ package service
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	"github.com/zeon-code/tiny-url/internal/model"
 	"github.com/zeon-code/tiny-url/internal/pkg/cache"
+	"github.com/zeon-code/tiny-url/internal/pkg/observability"
 	"github.com/zeon-code/tiny-url/internal/repository"
 )
 
@@ -19,14 +19,14 @@ type URLService interface {
 type UrlSvc struct {
 	repo     repository.URLRepository
 	cacheKey cache.CacheKey
-	logger   *slog.Logger
+	logger   observability.Logger
 }
 
-func NewUrlService(repositories repository.Repositories, logger *slog.Logger) URLService {
+func NewUrlService(repositories repository.Repositories, observer observability.Observer) URLService {
 	return UrlSvc{
 		repo:     repositories.Url,
 		cacheKey: cache.NewCacheKey("url", "service"),
-		logger:   logger,
+		logger:   observer.Logger().WithGroup("url-service"),
 	}
 }
 

@@ -14,7 +14,7 @@ func (c RedisConfig) GetDriver() string {
 }
 
 func (c RedisConfig) GetDNS() (string, error) {
-	host, err := c.DBPassword()
+	host, err := c.DBHost()
 
 	if err != nil {
 		return "", err

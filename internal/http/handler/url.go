@@ -2,26 +2,29 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
 
+	"github.com/zeon-code/tiny-url/internal/db"
 	"github.com/zeon-code/tiny-url/internal/model"
 	"github.com/zeon-code/tiny-url/internal/pkg/cache"
+	"github.com/zeon-code/tiny-url/internal/pkg/observability"
 	"github.com/zeon-code/tiny-url/internal/pkg/pagination"
 	"github.com/zeon-code/tiny-url/internal/service"
 )
 
 type UrlHandler struct {
 	UrlSvc service.URLService
-	logger *slog.Logger
+	logger observability.Logger
 }
 
-func NewUrlHandler(services service.Services, logger *slog.Logger) UrlHandler {
+func NewUrlHandler(services service.Services, observer observability.Observer) UrlHandler {
 	return UrlHandler{
 		UrlSvc: services.Url,
-		logger: logger,
+		logger: observer.Logger().WithGroup("url-handler"),
 	}
 }
 
@@ -41,6 +44,8 @@ type UrlCreateResponse struct {
 }
 
 func (h UrlHandler) Create(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	defer r.Body.Close()
 
 	if r.Header.Get("Content-Type") != "application/json" {
@@ -52,19 +57,20 @@ func (h UrlHandler) Create(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err = json.Unmarshal(body, &request); err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		observability.HTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 
-	url, err := h.UrlSvc.Create(r.Context(), request.Target)
+	url, err := h.UrlSvc.Create(ctx, request.Target)
 
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.logger.Error(ctx, "error creating url", slog.Any("error", err))
+		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -75,7 +81,7 @@ func (h UrlHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -85,18 +91,19 @@ func (h UrlHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h UrlHandler) List(w http.ResponseWriter, r *http.Request) {
 	limit := 50
+	ctx := r.Context()
 
 	if r.Header.Get("Content-Type") != "application/json" {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
-	ctx := r.Context()
 	direction, cursor := pagination.GetCursor(r)
 	urls, err := h.UrlSvc.List(cache.WithCache(ctx), limit, direction, cursor)
 
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.logger.Error(ctx, "error listening urls", slog.Any("error", err))
+		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -104,7 +111,7 @@ func (h UrlHandler) List(w http.ResponseWriter, r *http.Request) {
 	data, err := pagination.NewPagination(urls, limit, cursor).Encode(cursorKey)
 
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -113,6 +120,8 @@ func (h UrlHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h UrlHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	if r.Header.Get("Content-Type") != "application/json" {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
@@ -121,22 +130,24 @@ func (h UrlHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		observability.HTTPError(ctx, w, http.StatusBadRequest, err)
 		return
 	}
 
-	ctx := r.Context()
 	url, err := h.UrlSvc.GetByID(cache.WithCache(ctx), id)
 
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	if errors.Is(err, db.ErrDBResourceNotFound) {
+		observability.HTTPError(ctx, w, http.StatusNotFound, err)
+		return
+	} else if err != nil {
+		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
 	data, err := json.Marshal(url)
 
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 

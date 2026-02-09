@@ -23,7 +23,6 @@ func TestRedisCacheClient(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "hit", string(buffer))
-		assert.True(t, fake.CacheMetric.LastCacheHit)
 	})
 
 	t.Run("proxy get command with miss", func(t *testing.T) {
@@ -34,7 +33,6 @@ func TestRedisCacheClient(t *testing.T) {
 
 		assert.Equal(t, []byte{}, buffer)
 		assert.Equal(t, db.ErrCacheNotFound, err)
-		assert.True(t, fake.CacheMetric.LastCacheMiss)
 	})
 
 	t.Run("proxy get command with error", func(t *testing.T) {
@@ -45,8 +43,6 @@ func TestRedisCacheClient(t *testing.T) {
 
 		assert.Equal(t, []byte{}, buffer)
 		assert.Equal(t, db.ErrCacheUnavailable, err)
-		assert.Equal(t, "failed to read redis key: redis: client is closed", fake.CacheMetric.LastCacheErr)
-		assert.Equal(t, key, fake.CacheMetric.LastCacheKeyErr)
 	})
 
 	t.Run("proxy set command", func(t *testing.T) {
@@ -55,8 +51,6 @@ func TestRedisCacheClient(t *testing.T) {
 		err := fake.Cache().Set(ctx, "value", key, 1*time.Minute)
 
 		assert.NoError(t, err)
-		assert.Empty(t, fake.CacheMetric.LastCacheErr)
-		assert.Empty(t, fake.CacheMetric.LastCacheKeyErr)
 	})
 
 	t.Run("proxy set command with error", func(t *testing.T) {
@@ -66,8 +60,6 @@ func TestRedisCacheClient(t *testing.T) {
 		err := fake.Cache().Set(ctx, "value", key, 1*time.Minute)
 
 		assert.Equal(t, db.ErrCacheUnavailable, err)
-		assert.Equal(t, "failed to write value into key: redis: client is closed", fake.CacheMetric.LastCacheErr)
-		assert.Equal(t, key, fake.CacheMetric.LastCacheKeyErr)
 	})
 
 	t.Run("proxy del command", func(t *testing.T) {
@@ -76,8 +68,6 @@ func TestRedisCacheClient(t *testing.T) {
 		err := fake.Cache().Del(ctx, key)
 
 		assert.NoError(t, err)
-		assert.Empty(t, fake.CacheMetric.LastCacheErr)
-		assert.Empty(t, fake.CacheMetric.LastCacheKeyErr)
 	})
 
 	t.Run("proxy del command with error", func(t *testing.T) {
@@ -87,8 +77,6 @@ func TestRedisCacheClient(t *testing.T) {
 		err := fake.Cache().Del(ctx, key)
 
 		assert.Equal(t, db.ErrCacheUnavailable, err)
-		assert.Equal(t, "failed to delete redis key: redis: client is closed", fake.CacheMetric.LastCacheErr)
-		assert.Equal(t, key, fake.CacheMetric.LastCacheKeyErr)
 	})
 
 	t.Run("proxy incr command", func(t *testing.T) {
@@ -99,8 +87,6 @@ func TestRedisCacheClient(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), value)
-		assert.Empty(t, fake.CacheMetric.LastCacheErr)
-		assert.Empty(t, fake.CacheMetric.LastCacheKeyErr)
 	})
 
 	t.Run("proxy incr command with error", func(t *testing.T) {
@@ -110,7 +96,5 @@ func TestRedisCacheClient(t *testing.T) {
 		_, err := fake.Cache().Incr(ctx, key)
 
 		assert.Equal(t, db.ErrCacheUnavailable, err)
-		assert.Equal(t, "failed to increment redis key: redis: client is closed", fake.CacheMetric.LastCacheErr)
-		assert.Equal(t, key, fake.CacheMetric.LastCacheKeyErr)
 	})
 }

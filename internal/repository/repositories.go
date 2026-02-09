@@ -1,15 +1,32 @@
 package repository
 
 import (
-	"log/slog"
+	"errors"
 
 	"github.com/zeon-code/tiny-url/internal/db"
 	"github.com/zeon-code/tiny-url/internal/pkg/config"
-	"github.com/zeon-code/tiny-url/internal/pkg/metric"
+	"github.com/zeon-code/tiny-url/internal/pkg/observability"
 )
 
 type Repositories struct {
 	Url URLRepository
+
+	database db.SQLClient
+	memory   db.SQLReader
+}
+
+func (r Repositories) Shutdown() error {
+	var err error
+
+	if r.database != nil {
+		err = errors.Join(err, r.database.Close())
+	}
+
+	if r.memory != nil {
+		err = errors.Join(err, r.memory.Close())
+	}
+
+	return err
 }
 
 // NewRepositoriesFromConfig builds and wires all repository dependencies using the
@@ -23,27 +40,33 @@ type Repositories struct {
 // cannot be created, as the application cannot operate without them.
 //
 // Returns a fully initialized Repositories instance
-func NewRepositoriesFromConfig(conf config.Configuration, metrics metric.MetricClient, logger *slog.Logger) Repositories {
-	cache, err := db.NewCacheClient(conf.Cache(), metrics, logger.With("client", "cache"))
+func NewRepositoriesFromConfig(conf config.Configuration, observer observability.Observer) Repositories {
+	cache, err := db.NewCacheClient(conf.Cache(), observer)
 
 	if err != nil {
 		panic("error building cache client: " + err.Error())
 	}
 
-	database, err := db.NewDBClient(conf.PrimaryDatabase(), metrics, logger.With("client", "primary-db"))
+	database, err := db.NewDBClient(conf.PrimaryDatabase(), observer)
 
 	if err != nil {
+		cache.Close()
 		panic("error building primary database client: " + err.Error())
 	}
 
-	replica, err := db.NewDBClient(conf.ReplicaDatabase(), metrics, logger.With("client", "replica-db"))
+	replica, err := db.NewDBClient(conf.ReplicaDatabase(), observer)
 
 	if err != nil {
 		replica = database
 	}
 
-	memory := db.NewMemoryDatabase(replica, cache, metrics, logger.With("client", "memory"))
-	return NewRepositories(database, memory, logger)
+	memory, err := db.NewMemoryDatabase(replica, cache, observer)
+
+	if err != nil {
+		panic("error building memory client" + err.Error())
+	}
+
+	return NewRepositories(database, memory, observer)
 }
 
 // NewRepositories constructs a Repositories container using the provided
@@ -51,8 +74,11 @@ func NewRepositoriesFromConfig(conf config.Configuration, metrics metric.MetricC
 //
 // The database client is used for write operations, while the memory client
 // (typically backed by cache and/or replicas) is used for read operations.
-func NewRepositories(database db.SQLClient, memory db.SQLReader, logger *slog.Logger) Repositories {
+func NewRepositories(database db.SQLClient, memory db.SQLReader, observer observability.Observer) Repositories {
 	return Repositories{
-		Url: NewURLRepository(database, memory, logger.With("repository", "url")),
+		Url: NewURLRepository(database, memory, observer),
+
+		database: database,
+		memory:   memory,
 	}
 }

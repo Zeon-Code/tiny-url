@@ -1,0 +1,99 @@
+package observability
+
+import (
+	"context"
+	"log/slog"
+	"os"
+	"strings"
+
+	"github.com/zeon-code/tiny-url/internal/pkg/config"
+	"go.opentelemetry.io/otel/trace"
+)
+
+type Logger interface {
+	With(args ...any) Logger
+	WithGroup(name string) Logger
+
+	Debug(ctx context.Context, msg string, args ...any)
+	Info(ctx context.Context, msg string, args ...any)
+	Warn(ctx context.Context, msg string, args ...any)
+	Error(ctx context.Context, msg string, args ...any)
+}
+
+func NewLogger(conf config.Log) Logger {
+	var level slog.Level
+
+	switch strings.ToLower(conf.Level()) {
+	case "debug":
+		level = slog.LevelDebug
+	case "info":
+		level = slog.LevelInfo
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		level = slog.LevelInfo
+	}
+
+	return NewDatadogLogger(level)
+}
+
+type DatadogLogger struct {
+	logger *slog.Logger
+}
+
+func NewDatadogLogger(level slog.Level) DatadogLogger {
+	return DatadogLogger{
+		logger: slog.New(
+			slog.NewJSONHandler(
+				os.Stdout,
+				&slog.HandlerOptions{
+					Level: level,
+				},
+			),
+		),
+	}
+}
+
+func (l DatadogLogger) Debug(ctx context.Context, msg string, args ...any) {
+	l.withTrace(ctx).Debug(msg, args...)
+}
+
+func (l DatadogLogger) Info(ctx context.Context, msg string, args ...any) {
+	l.withTrace(ctx).Info(msg, args...)
+}
+
+func (l DatadogLogger) Warn(ctx context.Context, msg string, args ...any) {
+	l.withTrace(ctx).Warn(msg, args...)
+}
+
+func (l DatadogLogger) Error(ctx context.Context, msg string, args ...any) {
+	l.withTrace(ctx).Error(msg, args...)
+}
+
+func (l DatadogLogger) With(args ...any) Logger {
+	return DatadogLogger{
+		logger: l.logger.With(args...),
+	}
+}
+
+func (l DatadogLogger) WithGroup(name string) Logger {
+	return DatadogLogger{
+		logger: l.logger.WithGroup(name),
+	}
+}
+
+func (l DatadogLogger) withTrace(ctx context.Context) *slog.Logger {
+	span := trace.SpanFromContext(ctx)
+	if !span.SpanContext().IsValid() {
+		return l.logger
+	}
+
+	sc := span.SpanContext()
+
+	return l.logger.With(
+		slog.String("trace_id", sc.TraceID().String()),
+		slog.String("span_id", sc.SpanID().String()),
+	)
+}

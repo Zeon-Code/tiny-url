@@ -9,14 +9,14 @@ import (
 )
 
 var (
-	ErrDBInvalidBackend = errors.New("error db invalid backend instance")
-	ErrDBNotFound       = errors.New("error db resource not found")
+	ErrDBInvalidBackend   = errors.New("error db invalid backend instance")
+	ErrDBResourceNotFound = errors.New("error db resource not found")
 )
 
 func mapDBError(err error) error {
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return ErrDBNotFound
+		return ErrDBResourceNotFound
 	case errors.Is(err, context.Canceled):
 		return err
 	case errors.Is(err, context.DeadlineExceeded):
@@ -33,6 +33,8 @@ var (
 
 func mapCacheError(err error) error {
 	switch {
+	case errors.Is(err, nil):
+		return nil
 	case errors.Is(err, redis.Nil):
 		return ErrCacheNotFound
 	case errors.Is(err, context.Canceled):

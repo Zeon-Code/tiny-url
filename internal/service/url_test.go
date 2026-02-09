@@ -16,7 +16,7 @@ func TestUrlService(t *testing.T) {
 
 	t.Run("create url", func(t *testing.T) {
 		fake := test.NewFakeDependencies()
-		svc := service.NewUrlService(fake.Repositories(), fake.Logger())
+		svc := service.NewUrlService(fake.Repositories(), fake.Observer())
 
 		fake.MockUrlCreate()
 		url, err := svc.Create(ctx, "target")
@@ -27,7 +27,7 @@ func TestUrlService(t *testing.T) {
 
 	t.Run("list url", func(t *testing.T) {
 		fake := test.NewFakeDependencies()
-		svc := service.NewUrlService(fake.Repositories(), fake.Logger())
+		svc := service.NewUrlService(fake.Repositories(), fake.Observer())
 
 		fake.MockUrlList()
 		urls, err := svc.List(ctx, 5, ">", nil)
@@ -39,7 +39,7 @@ func TestUrlService(t *testing.T) {
 	t.Run("list paginated url", func(t *testing.T) {
 		cursor := int64(1)
 		fake := test.NewFakeDependencies()
-		svc := service.NewUrlService(fake.Repositories(), fake.Logger())
+		svc := service.NewUrlService(fake.Repositories(), fake.Observer())
 
 		fake.MockPaginatedUrlList()
 		urls, err := svc.List(ctx, 5, ">", &cursor)
@@ -50,7 +50,7 @@ func TestUrlService(t *testing.T) {
 
 	t.Run("list url from cache", func(t *testing.T) {
 		fake := test.NewFakeDependencies()
-		svc := service.NewUrlService(fake.Repositories(), fake.Logger())
+		svc := service.NewUrlService(fake.Repositories(), fake.Observer())
 
 		fake.CacheBackend.Value = `[]`
 		urls, err := svc.List(cache.WithCache(ctx), 5, ">", nil)
@@ -61,7 +61,7 @@ func TestUrlService(t *testing.T) {
 
 	t.Run("url get by id", func(t *testing.T) {
 		fake := test.NewFakeDependencies()
-		svc := service.NewUrlService(fake.Repositories(), fake.Logger())
+		svc := service.NewUrlService(fake.Repositories(), fake.Observer())
 
 		fake.MockUrlGetById()
 		url, err := svc.GetByID(ctx, int64(1))
@@ -72,7 +72,7 @@ func TestUrlService(t *testing.T) {
 
 	t.Run("url get by id from cache", func(t *testing.T) {
 		fake := test.NewFakeDependencies()
-		svc := service.NewUrlService(fake.Repositories(), fake.Logger())
+		svc := service.NewUrlService(fake.Repositories(), fake.Observer())
 
 		fake.CacheBackend.Value = `{"id": 1, "Code": "1", "target": "target1", "created_at": "2024-01-01T00:00:00Z", "updated_at": "2024-01-01T00:00:00Z"}`
 		url, err := svc.GetByID(cache.WithCache(ctx), int64(1))

@@ -3,11 +3,11 @@ package db
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
+	"errors"
 	"time"
 
 	"github.com/zeon-code/tiny-url/internal/pkg/cache"
-	"github.com/zeon-code/tiny-url/internal/pkg/metric"
+	"github.com/zeon-code/tiny-url/internal/pkg/observability"
 )
 
 type dbFetch func(ctx context.Context, value any, query string, args ...any) error
@@ -24,17 +24,23 @@ type dbFetch func(ctx context.Context, value any, query string, args ...any) err
 type MemoryDatabaseClient struct {
 	db     SQLClient
 	cache  CacheClient
-	metric metric.MetricClient
-	logger *slog.Logger
+	metric observability.MetricClient
+	logger observability.Logger
 }
 
-func NewMemoryDatabase(db SQLClient, cache CacheClient, metric metric.MetricClient, logger *slog.Logger) SQLReader {
+func NewMemoryDatabase(db SQLClient, cache CacheClient, observer observability.Observer) (SQLReader, error) {
+	metrics, err := observer.Metric()
+
+	if err != nil {
+		return nil, err
+	}
+
 	return MemoryDatabaseClient{
 		db:     db,
 		cache:  cache,
-		metric: metric,
-		logger: logger,
-	}
+		metric: metrics,
+		logger: observer.Logger().WithGroup("memory-client"),
+	}, nil
 }
 
 // Select executes a database select operation with optional caching.
@@ -65,22 +71,32 @@ func (c MemoryDatabaseClient) Get(ctx context.Context, value any, query string, 
 	return c.load(ctx, c.db.Get, value, query, args...)
 }
 
+// Close closes the underlying database connection and cache client,
+// releasing all associated resources.
+//
+// Both close operations are attempted, and any resulting errors are
+// combined using errors.Join and returned to the caller.
+func (c MemoryDatabaseClient) Close() error {
+
+	return errors.Join(c.cache.Close(), c.db.Close())
+}
+
 func (c MemoryDatabaseClient) load(ctx context.Context, fetch dbFetch, value any, query string, args ...any) error {
 	startAt := time.Now()
 	memory := cache.CacheFromContext(ctx)
 
 	if !memory.IsEnabled {
-		c.metric.MemoryBypassed()
+		c.metric.MemoryBypassed(ctx)
 		return fetch(ctx, value, query, args...)
 	}
 
 	if data, err := c.cache.Get(ctx, memory.Policy.Key); err == nil {
 		if err := json.Unmarshal(data, value); err == nil {
-			c.metric.MemoryHit(memory.Policy.Key, time.Since(startAt))
+			c.metric.MemoryHit(ctx, memory.Policy.Key, time.Since(startAt))
 			return nil
 		}
 
-		c.metric.MemoryInvalid(memory.Policy.Key)
+		c.metric.MemoryInvalid(ctx, memory.Policy.Key)
 		c.cache.Del(ctx, memory.Policy.Key)
 	}
 
@@ -92,6 +108,6 @@ func (c MemoryDatabaseClient) load(ctx context.Context, fetch dbFetch, value any
 		c.cache.Set(ctx, data, memory.Policy.Key, memory.Policy.TTL)
 	}
 
-	c.metric.MemoryMiss(memory.Policy.Key, time.Since(startAt))
+	c.metric.MemoryMiss(ctx, memory.Policy.Key, time.Since(startAt))
 	return nil
 }

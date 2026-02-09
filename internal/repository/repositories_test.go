@@ -11,7 +11,7 @@ import (
 func TestRepositories(t *testing.T) {
 	t.Run("Should define url repository", func(t *testing.T) {
 		fake := test.NewFakeDependencies()
-		repositories := repository.NewRepositories(fake.DB(), fake.Memory(), fake.Logger())
+		repositories := repository.NewRepositories(fake.DB(), fake.Memory(), fake.Observer())
 
 		assert.NotNil(t, repositories.Url)
 	})

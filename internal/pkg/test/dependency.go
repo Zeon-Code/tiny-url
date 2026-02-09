@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/zeon-code/tiny-url/internal/db"
 	"github.com/zeon-code/tiny-url/internal/http/handler"
+	"github.com/zeon-code/tiny-url/internal/pkg/observability"
 	"github.com/zeon-code/tiny-url/internal/repository"
 	"github.com/zeon-code/tiny-url/internal/service"
 )
@@ -51,16 +52,21 @@ func NewFakeDependencies() FakeDependencies {
 	return fake
 }
 
+func (d FakeDependencies) Observer() observability.Observer {
+	return NewFakeObserver(&FakeMetric{})
+}
+
 func (d FakeDependencies) DB() *db.PostgresClient {
-	return db.NewPostgresClient(d.DBBackend, d.DBMetric, d.Logger())
+	return db.NewPostgresClient(d.DBBackend, NewFakeObserver(d.DBMetric))
 }
 
 func (d FakeDependencies) Cache() *db.RedisClient {
-	return db.NewRedisClient(d.CacheBackend, d.CacheMetric, d.Logger())
+	return db.NewRedisClient(d.CacheBackend, NewFakeObserver(d.CacheMetric))
 }
 
 func (d FakeDependencies) Memory() db.SQLReader {
-	return db.NewMemoryDatabase(d.DB(), d.Cache(), d.MemoryMetric, d.Logger())
+	memory, _ := db.NewMemoryDatabase(d.DB(), d.Cache(), NewFakeObserver(d.MemoryMetric))
+	return memory
 }
 
 func (d FakeDependencies) Logger() *slog.Logger {
@@ -68,13 +74,13 @@ func (d FakeDependencies) Logger() *slog.Logger {
 }
 
 func (d FakeDependencies) Repositories() repository.Repositories {
-	return repository.NewRepositories(d.DB(), d.Memory(), d.Logger())
+	return repository.NewRepositories(d.DB(), d.Memory(), d.Observer())
 }
 
 func (d FakeDependencies) Services() service.Services {
-	return service.NewServices(d.Repositories(), d.Logger())
+	return service.NewServices(d.Repositories(), d.Observer())
 }
 
 func (d FakeDependencies) Router() http.Handler {
-	return handler.NewRouter(d.Services(), d.HTTPMetric, d.Logger())
+	return handler.NewRouter(d.Services(), d.Observer())
 }

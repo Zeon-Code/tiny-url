@@ -2,12 +2,11 @@ package db
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/zeon-code/tiny-url/internal/pkg/config"
-	"github.com/zeon-code/tiny-url/internal/pkg/metric"
+	"github.com/zeon-code/tiny-url/internal/pkg/observability"
 )
 
 type RedisBackend interface {
@@ -15,6 +14,7 @@ type RedisBackend interface {
 	Del(ctx context.Context, keys ...string) *redis.IntCmd
 	Incr(ctx context.Context, key string) *redis.IntCmd
 	SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.BoolCmd
+	Close() error
 }
 
 // RedisClient provides a thin abstraction over redis.Client,
@@ -23,28 +23,28 @@ type RedisBackend interface {
 // backend while mapping low-level errors to domain-level errors.
 type RedisClient struct {
 	backend RedisBackend
-	metric  metric.MetricClient
-	logger  *slog.Logger
+	metric  observability.MetricClient
+	logger  observability.Logger
 }
 
-func newRedisClient(c config.DatabaseConfiguration, m metric.MetricClient, l *slog.Logger) (*RedisClient, error) {
+func NewRedisClientFromConfig(c config.DatabaseConfiguration, observer observability.Observer) (*RedisClient, error) {
 	dns, err := c.GetDNS()
 
 	if err != nil {
 		return nil, err
 	}
 
-	opt, err := redis.ParseURL(dns)
+	rdb, err := observability.NewInstrumentedRedis(observer, dns)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &RedisClient{backend: redis.NewClient(opt), metric: m, logger: l}, err
+	return NewRedisClient(rdb, observer), err
 }
 
-func NewRedisClient(b RedisBackend, m metric.MetricClient, l *slog.Logger) *RedisClient {
-	return &RedisClient{backend: b, metric: m, logger: l}
+func NewRedisClient(b RedisBackend, observer observability.Observer) *RedisClient {
+	return &RedisClient{backend: b, logger: observer.Logger().WithGroup("redis-client")}
 }
 
 // Get retrieves the cached value associated with the given key.
@@ -53,18 +53,12 @@ func NewRedisClient(b RedisBackend, m metric.MetricClient, l *slog.Logger) *Redi
 //
 // Returns a mapped cache error for consistent error handling.
 func (p RedisClient) Get(ctx context.Context, key string) ([]byte, error) {
-	now := time.Now()
 	data, err := p.backend.Get(ctx, key).Bytes()
 
-	if err == redis.Nil {
-		p.metric.CacheMiss(key, time.Since(now))
-		return []byte{}, mapCacheError(err)
-	} else if err != nil {
-		p.metric.CacheError(key, "failed to read redis key: "+err.Error())
+	if err != nil {
 		return []byte{}, mapCacheError(err)
 	}
 
-	p.metric.CacheHit(key, time.Since(now))
 	return data, nil
 }
 
@@ -77,7 +71,6 @@ func (p RedisClient) Set(ctx context.Context, value any, key string, ttl time.Du
 	err := p.backend.SetNX(ctx, key, value, ttl).Err()
 
 	if err != nil {
-		p.metric.CacheError(key, "failed to write value into key: "+err.Error())
 		return mapCacheError(err)
 	}
 
@@ -93,7 +86,6 @@ func (p RedisClient) Del(ctx context.Context, key string) error {
 	err := p.backend.Del(ctx, key).Err()
 
 	if err != nil {
-		p.metric.CacheError(key, "failed to delete redis key: "+err.Error())
 		return mapCacheError(err)
 	}
 
@@ -109,9 +101,17 @@ func (p RedisClient) Incr(ctx context.Context, key string) (int64, error) {
 	current, err := p.backend.Incr(ctx, key).Result()
 
 	if err != nil {
-		p.metric.CacheError(key, "failed to increment redis key: "+err.Error())
 		return 0, mapCacheError(err)
 	}
 
 	return current, nil
+}
+
+// Incr atomically increments the integer value stored at the given key
+// and returns the updated value. If the key does not exist, it is
+// initialized before being incremented.
+//
+// Returns a mapped cache error for consistent error handling.
+func (p RedisClient) Close() error {
+	return mapCacheError(p.backend.Close())
 }

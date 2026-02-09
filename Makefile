@@ -1,24 +1,30 @@
 # Load variables from .envs/local.env
 include .envs/local.env
+
 export $(shell sed 's/=.*//' .envs/local.env)
+VERSION ?= $(shell git describe --abbrev=0 --tags 2>/dev/null || echo 0.0.1)
 
 # App
 export APP_BINARY_PATH ?= /tmp/tiny-url
 
 .PHONY: new-migration
 
-dev:
+infrastructure:
+	@docker-compose up -d
+
+dev: infrastructure
 	@go run cmd/api/main.go
+
+run:
+	@docker-compose --profile app up --build --force-recreate -d
+	@docker-compose logs api -f
 
 test:
 	@go test -coverprofile=coverage.out ./...
 
 build:
-	@go build -v -o $(APP_BINARY_PATH) cmd/api/main.go
-	@chmod -X $(APP_BINARY_PATH)
-
-run: build
-	@$(APP_BINARY_PATH)
+	@echo "Building app version $(VERSION)"
+	@go build -o $(APP_BINARY_PATH) -ldflags "-X main.version=$(VERSION)" cmd/api/main.go
 
 api-create-urls:
 	@echo "\nUsage example, make api-create-urls"

@@ -13,6 +13,11 @@ services:
       POSTGRESQL_USERNAME: postgres
       POSTGRESQL_PASSWORD: postgres
       POSTGRESQL_DATABASE: tiny_url
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - primary_data:/bitnami/postgresql
 
@@ -30,11 +35,17 @@ services:
       POSTGRESQL_MASTER_HOST: postgres-primary
       POSTGRESQL_MASTER_PORT_NUMBER: 5432
       POSTGRESQL_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - replica_data:/bitnami/postgresql
 
   redis:
     image: redis:7-alpine
+    container_name: redis
     ports:
       - "6379:6379"
     volumes:
@@ -46,15 +57,28 @@ services:
       retries: 5
 
   dd-agent:
-    image: gcr.io/datadoghq/agent:7
+    image: datadog/agent:7.55.1
     container_name: dd-agent
     ports:
+      - "4318:4318/tcp"
       - "8126:8126/tcp"
       - "8125:8125/udp"
     environment:
       - DD_SITE=datadoghq.com
       - DD_APM_ENABLED=true
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_PROCESS_AGENT_ENABLED=false
+      # OLTP
+      - DD_OTLP_CONFIG_ENABLED=true
+      - DD_OTLP_CONFIG_METRICS_ENABLED=true
+      - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENDPOINT=0.0.0.0:4318
+      - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0.0.0.0:4317
+      # DB Queries
+      - DD_APM_COMPUTE_STATS_BY_SPAN_KIND=true 
+      - DD_APM_PEER_TAGS_AGGREGATION=true
+      # Logs
+      - DD_LOGS_ENABLED=true
+
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc/:/host/proc/:ro
@@ -62,6 +86,36 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     env_file:
       - .envs/datadog.env
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${APP_VERSION:-0.0.1}
+    container_name: app
+    image: tiny-url:local
+    labels:
+      com.datadoghq.ad.logs: >
+        [{
+          "source": "go",
+          "service": "tiny-url"
+        }]
+    env_file:
+      - .envs/local.env
+    environment:
+      - CACHE_HOST=redis
+      - METRIC_HOST=dd-agent
+      - DB_HOST=pg-primary
+      - DB_REPLICA_HOST=pg-replica
+      - DB_REPLICA_PORT=5432
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - dd-agent
+      - postgres-primary
+      - postgres-replica
 
 volumes:
   redis_data:

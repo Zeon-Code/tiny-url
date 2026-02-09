@@ -25,8 +25,6 @@ func TestPostgresClient(t *testing.T) {
 		err := fake.DB().Select(ctx, &[]Row{}, query, 1)
 
 		assert.NoError(t, err)
-		assert.Equal(t, fake.DBMetric.LastQuery, query)
-		assert.NotNil(t, fake.DBMetric.LastDuration)
 	})
 
 	t.Run("proxy select query with error", func(t *testing.T) {
@@ -37,8 +35,6 @@ func TestPostgresClient(t *testing.T) {
 		err := fake.DB().Select(ctx, &[]Row{}, query, 1)
 
 		assert.Equal(t, context.Canceled, err)
-		assert.Equal(t, fake.DBMetric.LastDBQueryErr, query)
-		assert.Equal(t, fake.DBMetric.LastDBErr, err.Error())
 	})
 
 	t.Run("proxy get query", func(t *testing.T) {
@@ -50,8 +46,6 @@ func TestPostgresClient(t *testing.T) {
 		err := fake.DB().Get(ctx, &Row{}, query, 1)
 
 		assert.NoError(t, err)
-		assert.Equal(t, fake.DBMetric.LastQuery, query)
-		assert.NotNil(t, fake.DBMetric.LastDuration)
 	})
 
 	t.Run("proxy get query with error", func(t *testing.T) {
@@ -62,8 +56,6 @@ func TestPostgresClient(t *testing.T) {
 		err := fake.DB().Get(ctx, &Row{}, query, 1)
 
 		assert.Equal(t, context.Canceled, err)
-		assert.Equal(t, fake.DBMetric.LastDBQueryErr, query)
-		assert.Equal(t, fake.DBMetric.LastDBErr, err.Error())
 	})
 
 	t.Run("proxy exec query", func(t *testing.T) {
@@ -75,8 +67,6 @@ func TestPostgresClient(t *testing.T) {
 		err := fake.DB().Exec(ctx, query, "code", 1)
 
 		assert.NoError(t, err)
-		assert.Equal(t, fake.DBMetric.LastQuery, query)
-		assert.NotNil(t, fake.DBMetric.LastDuration)
 	})
 
 	t.Run("proxy exec query with error", func(t *testing.T) {
@@ -87,8 +77,6 @@ func TestPostgresClient(t *testing.T) {
 		err := fake.DB().Exec(ctx, query, "code", 1)
 
 		assert.Equal(t, context.Canceled, err)
-		assert.Equal(t, fake.DBMetric.LastDBQueryErr, query)
-		assert.Equal(t, fake.DBMetric.LastDBErr, err.Error())
 	})
 
 	t.Run("proxy start transaction with error", func(t *testing.T) {
@@ -98,8 +86,6 @@ func TestPostgresClient(t *testing.T) {
 		_, err := fake.DB().BeginTx(ctx, nil)
 
 		assert.NoError(t, err)
-		assert.Equal(t, fake.DBMetric.LastQuery, "START TRANSACTION;")
-		assert.NotNil(t, fake.DBMetric.LastDuration)
 	})
 
 	t.Run("proxy start transaction with error", func(t *testing.T) {
@@ -109,8 +95,6 @@ func TestPostgresClient(t *testing.T) {
 		_, err := fake.DB().BeginTx(ctx, nil)
 
 		assert.Equal(t, context.Canceled, err)
-		assert.Equal(t, fake.DBMetric.LastDBQueryErr, "START TRANSACTION;")
-		assert.NotNil(t, fake.DBMetric.LastDBErr, err.Error())
 	})
 }
 
@@ -135,8 +119,6 @@ func TestPostgresTx(t *testing.T) {
 		err = tx.Select(ctx, &[]Row{}, query, 1)
 
 		assert.NoError(t, err)
-		assert.Equal(t, fake.DBMetric.LastQuery, query)
-		assert.NotNil(t, fake.DBMetric.LastDuration)
 	})
 
 	t.Run("proxy select query with error", func(t *testing.T) {
@@ -152,8 +134,6 @@ func TestPostgresTx(t *testing.T) {
 		err = tx.Select(ctx, &[]Row{}, query, 1)
 
 		assert.Equal(t, context.Canceled, err)
-		assert.Equal(t, fake.DBMetric.LastDBQueryErr, query)
-		assert.Equal(t, fake.DBMetric.LastDBErr, err.Error())
 	})
 
 	t.Run("proxy get query", func(t *testing.T) {
@@ -170,8 +150,6 @@ func TestPostgresTx(t *testing.T) {
 		err = tx.Get(ctx, &Row{}, query, 1)
 
 		assert.NoError(t, err)
-		assert.Equal(t, fake.DBMetric.LastQuery, query)
-		assert.NotNil(t, fake.DBMetric.LastDuration)
 	})
 
 	t.Run("proxy get query with error", func(t *testing.T) {
@@ -187,8 +165,6 @@ func TestPostgresTx(t *testing.T) {
 		err = tx.Get(ctx, &Row{}, query, 1)
 
 		assert.Equal(t, context.Canceled, err)
-		assert.Equal(t, fake.DBMetric.LastDBQueryErr, query)
-		assert.Equal(t, fake.DBMetric.LastDBErr, err.Error())
 	})
 
 	t.Run("proxy exec query", func(t *testing.T) {
@@ -205,8 +181,6 @@ func TestPostgresTx(t *testing.T) {
 		err = tx.Exec(ctx, query, "code", 1)
 
 		assert.NoError(t, err)
-		assert.Equal(t, fake.DBMetric.LastQuery, query)
-		assert.NotNil(t, fake.DBMetric.LastDuration)
 	})
 
 	t.Run("proxy exec query with error", func(t *testing.T) {
@@ -222,8 +196,6 @@ func TestPostgresTx(t *testing.T) {
 		err = tx.Exec(ctx, query, "code", 1)
 
 		assert.Equal(t, context.Canceled, err)
-		assert.Equal(t, fake.DBMetric.LastDBQueryErr, query)
-		assert.Equal(t, fake.DBMetric.LastDBErr, err.Error())
 	})
 
 	t.Run("proxy commit query", func(t *testing.T) {
@@ -235,9 +207,6 @@ func TestPostgresTx(t *testing.T) {
 
 		fake.DBMock.ExpectCommit()
 		assert.NoError(t, tx.Commit())
-
-		assert.NotNil(t, fake.DBMetric.LastDuration)
-		assert.Equal(t, fake.DBMetric.LastQuery, "COMMIT TRANSACTION;")
 	})
 
 	t.Run("proxy commit query with error", func(t *testing.T) {
@@ -249,9 +218,6 @@ func TestPostgresTx(t *testing.T) {
 
 		fake.DBMock.ExpectCommit().WillReturnError(context.Canceled)
 		assert.Equal(t, context.Canceled, tx.Commit())
-
-		assert.Equal(t, fake.DBMetric.LastDBQueryErr, "COMMIT TRANSACTION;")
-		assert.Equal(t, context.Canceled.Error(), fake.DBMetric.LastDBErr)
 	})
 
 	t.Run("proxy rollback query", func(t *testing.T) {
@@ -263,9 +229,6 @@ func TestPostgresTx(t *testing.T) {
 
 		fake.DBMock.ExpectRollback()
 		assert.NoError(t, tx.Rollback())
-
-		assert.NotNil(t, fake.DBMetric.LastDuration)
-		assert.Equal(t, fake.DBMetric.LastQuery, "ROLLBACK;")
 	})
 
 	t.Run("proxy rollback query with error", func(t *testing.T) {
@@ -277,8 +240,5 @@ func TestPostgresTx(t *testing.T) {
 
 		fake.DBMock.ExpectRollback().WillReturnError(context.Canceled)
 		assert.Equal(t, context.Canceled, tx.Rollback())
-
-		assert.Equal(t, fake.DBMetric.LastDBQueryErr, "ROLLBACK;")
-		assert.Equal(t, context.Canceled.Error(), fake.DBMetric.LastDBErr)
 	})
 }

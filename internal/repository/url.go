@@ -3,11 +3,11 @@ package repository
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/zeon-code/tiny-url/internal/db"
 	"github.com/zeon-code/tiny-url/internal/model"
 	"github.com/zeon-code/tiny-url/internal/pkg/base62"
+	"github.com/zeon-code/tiny-url/internal/pkg/observability"
 )
 
 type URLRepository interface {
@@ -19,14 +19,14 @@ type URLRepository interface {
 type URLStore struct {
 	db     db.SQLClient
 	memory db.SQLReader
-	logger *slog.Logger
+	logger observability.Logger
 }
 
-func NewURLRepository(database db.SQLClient, memory db.SQLReader, logger *slog.Logger) URLRepository {
+func NewURLRepository(database db.SQLClient, memory db.SQLReader, observer observability.Observer) URLRepository {
 	return URLStore{
 		db:     database,
 		memory: memory,
-		logger: logger,
+		logger: observer.Logger().WithGroup("url-repository"),
 	}
 }
 
