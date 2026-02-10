@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/zeon-code/tiny-url/internal/model"
+	"github.com/zeon-code/tiny-url/internal/pkg/base62"
 	"github.com/zeon-code/tiny-url/internal/pkg/cache"
 	"github.com/zeon-code/tiny-url/internal/pkg/observability"
 	"github.com/zeon-code/tiny-url/internal/repository"
@@ -14,6 +15,7 @@ type URLService interface {
 	Create(context.Context, string) (*model.URL, error)
 	List(context.Context, int, string, *int64) ([]model.URL, error)
 	GetByID(context.Context, int64) (*model.URL, error)
+	GetByCode(ctx context.Context, code string) (*model.URL, error)
 }
 
 type UrlSvc struct {
@@ -60,4 +62,8 @@ func (s UrlSvc) GetByID(ctx context.Context, id int64) (*model.URL, error) {
 		),
 		id,
 	)
+}
+
+func (s UrlSvc) GetByCode(ctx context.Context, code string) (*model.URL, error) {
+	return s.GetByID(ctx, base62.Decode(code))
 }

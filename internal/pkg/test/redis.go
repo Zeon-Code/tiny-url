@@ -19,6 +19,10 @@ type FakeRedis struct {
 	LastSetExpiration time.Duration
 }
 
+func NewFakeRedisBackend() *FakeRedis {
+	return &FakeRedis{}
+}
+
 func (r *FakeRedis) Get(ctx context.Context, key string) *redis.StringCmd {
 	r.LastGetKey = key
 
@@ -53,6 +57,8 @@ func (r *FakeRedis) Close() error {
 	return nil
 }
 
-func NewFakeRedisBackend() *FakeRedis {
-	return &FakeRedis{}
+func (r *FakeRedis) Ping(ctx context.Context) *redis.StatusCmd {
+	cmd := redis.NewStatusCmd(ctx)
+	cmd.SetErr(r.Err)
+	return cmd
 }

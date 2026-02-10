@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/zeon-code/tiny-url/internal/pkg/cache"
@@ -71,13 +72,29 @@ func (c MemoryDatabaseClient) Get(ctx context.Context, value any, query string, 
 	return c.load(ctx, c.db.Get, value, query, args...)
 }
 
+// Get executes a database get operation with optional caching.
+//
+// Behavior mirrors Select, but is intended for single-row or primary-key
+// lookups. When caching is enabled, Get attempts to resolve the value from
+// cache before querying the database, falling back to the database on cache
+// misses or decode failures.
+//
+// Cache errors do not affect the database execution path.
+func (c MemoryDatabaseClient) Ping(ctx context.Context) error {
+	if err := c.cache.Ping(ctx); err != nil {
+		c.logger.Warn(ctx, "error cache is not available", slog.Any("error", err))
+		observability.TraceError(ctx, "cache is not available", err)
+	}
+
+	return c.db.Ping(ctx)
+}
+
 // Close closes the underlying database connection and cache client,
 // releasing all associated resources.
 //
 // Both close operations are attempted, and any resulting errors are
 // combined using errors.Join and returned to the caller.
 func (c MemoryDatabaseClient) Close() error {
-
 	return errors.Join(c.cache.Close(), c.db.Close())
 }
 

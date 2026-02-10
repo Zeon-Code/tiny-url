@@ -29,6 +29,7 @@ type PostgresClientBackend interface {
 
 	Close() error
 	BeginTxx(context.Context, *sql.TxOptions) (*sqlx.Tx, error)
+	PingContext(context.Context) error
 }
 
 // PostgresProxy provides a thin abstraction over sqlx.DB,
@@ -120,6 +121,25 @@ func (p PostgresClient) BeginTx(ctx context.Context, opt *sql.TxOptions) (SQLTX,
 	}
 
 	return newPostgresTx(tx, p.logger), nil
+}
+
+// Ping verifies connectivity to the database backend.
+//
+// It performs a lightweight ping using the underlying database driver to
+// ensure the connection is alive and the database is reachable. This method
+// does not start a transaction or execute any application-level queries.
+//
+// Returns a mapped database error for consistent error handling.
+func (p PostgresClient) Ping(ctx context.Context) error {
+	backend, ok := p.backend.(*sqlx.DB)
+
+	if !ok {
+		return ErrDBInvalidBackend
+	}
+
+	return mapDBError(
+		backend.PingContext(ctx),
+	)
 }
 
 // Close closes the underlying PostgreSQL backend connection.

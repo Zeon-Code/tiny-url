@@ -6,11 +6,13 @@ import (
 )
 
 type Services struct {
-	Url URLService
+	Url    URLService
+	Health HealthService
 }
 
-func NewServices(r repository.Repositories, observer observability.Observer) Services {
+func NewServices(repo repository.Repositories, observer observability.Observer) Services {
 	return Services{
-		Url: NewUrlService(r, observer),
+		Url:    NewUrlService(repo, observer),
+		Health: NewHealthService(repo, observer),
 	}
 }

@@ -9,7 +9,8 @@ import (
 )
 
 type Repositories struct {
-	Url URLRepository
+	Url    URLRepository
+	Health HealthRepository
 
 	database db.SQLClient
 	memory   db.SQLReader
@@ -47,7 +48,7 @@ func NewRepositoriesFromConfig(conf config.Configuration, observer observability
 		panic("error building cache client: " + err.Error())
 	}
 
-	database, err := db.NewDBClient(conf.PrimaryDatabase(), observer)
+	primary, err := db.NewDBClient(conf.PrimaryDatabase(), observer)
 
 	if err != nil {
 		cache.Close()
@@ -57,7 +58,7 @@ func NewRepositoriesFromConfig(conf config.Configuration, observer observability
 	replica, err := db.NewDBClient(conf.ReplicaDatabase(), observer)
 
 	if err != nil {
-		replica = database
+		replica = primary
 	}
 
 	memory, err := db.NewMemoryDatabase(replica, cache, observer)
@@ -66,7 +67,7 @@ func NewRepositoriesFromConfig(conf config.Configuration, observer observability
 		panic("error building memory client" + err.Error())
 	}
 
-	return NewRepositories(database, memory, observer)
+	return NewRepositories(primary, memory, observer)
 }
 
 // NewRepositories constructs a Repositories container using the provided
@@ -74,11 +75,12 @@ func NewRepositoriesFromConfig(conf config.Configuration, observer observability
 //
 // The database client is used for write operations, while the memory client
 // (typically backed by cache and/or replicas) is used for read operations.
-func NewRepositories(database db.SQLClient, memory db.SQLReader, observer observability.Observer) Repositories {
+func NewRepositories(primary db.SQLClient, memory db.SQLReader, observer observability.Observer) Repositories {
 	return Repositories{
-		Url: NewURLRepository(database, memory, observer),
+		Url:    NewURLRepository(primary, memory, observer),
+		Health: NewHealthRepository(primary, memory, observer),
 
-		database: database,
+		database: primary,
 		memory:   memory,
 	}
 }

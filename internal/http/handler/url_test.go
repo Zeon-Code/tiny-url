@@ -123,4 +123,17 @@ func TestUrlHandler(t *testing.T) {
 		assert.Equal(t, model.URL{ID: 1, Code: "1", Target: "target1", CreatedAt: &at, UpdatedAt: &at}, payload)
 	})
 
+	t.Run("url get by code", func(t *testing.T) {
+		fake := test.NewFakeDependencies()
+		router := handler.NewRouter(fake.Services(), fake.Observer())
+
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/r/1", nil)
+
+		fake.MockUrlGetById()
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusFound, rec.Code)
+		assert.Equal(t, "target1", rec.Header().Get("Location"))
+	})
 }

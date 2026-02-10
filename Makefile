@@ -2,7 +2,7 @@
 include .envs/local.env
 
 export $(shell sed 's/=.*//' .envs/local.env)
-VERSION ?= $(shell git describe --abbrev=0 --tags 2>/dev/null || echo 0.0.1)
+APP_VERSION ?= $(shell git describe --abbrev=0 --tags 2>/dev/null || echo 0.0.1)
 
 # App
 export APP_BINARY_PATH ?= /tmp/tiny-url
@@ -23,8 +23,8 @@ test:
 	@go test -coverprofile=coverage.out ./...
 
 build:
-	@echo "Building app version $(VERSION)"
-	@go build -o $(APP_BINARY_PATH) -ldflags "-X main.version=$(VERSION)" cmd/api/main.go
+	@echo "Building app version $(APP_VERSION)"
+	@go build -o $(APP_BINARY_PATH) -ldflags "-X main.version=$(APP_VERSION)" cmd/api/main.go
 
 api-create-urls:
 	@echo "\nUsage example, make api-create-urls"

@@ -14,6 +14,7 @@ type SQLReader interface {
 
 	Select(context.Context, any, string, ...any) error
 	Get(context.Context, any, string, ...any) error
+	Ping(context.Context) error
 }
 
 type SQLTX interface {
@@ -37,6 +38,7 @@ func NewDBClient(conf config.DatabaseConfiguration, observer observability.Obser
 }
 
 type CacheClient interface {
+	Ping(context.Context) error
 	Del(context.Context, string) error
 	Get(context.Context, string) ([]byte, error)
 	Set(context.Context, any, string, time.Duration) error

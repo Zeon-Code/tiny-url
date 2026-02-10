@@ -57,12 +57,14 @@ func (h UrlHandler) Create(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
-		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
+		observability.TraceError(ctx, http.StatusText(http.StatusInternalServerError), err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	if err = json.Unmarshal(body, &request); err != nil {
-		observability.HTTPError(ctx, w, http.StatusBadRequest, err)
+		observability.TraceError(ctx, http.StatusText(http.StatusBadRequest), err)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -70,7 +72,8 @@ func (h UrlHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		h.logger.Error(ctx, "error creating url", slog.Any("error", err))
-		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
+		observability.TraceError(ctx, http.StatusText(http.StatusInternalServerError), err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -81,7 +84,8 @@ func (h UrlHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
+		observability.TraceError(ctx, http.StatusText(http.StatusInternalServerError), err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -102,8 +106,8 @@ func (h UrlHandler) List(w http.ResponseWriter, r *http.Request) {
 	urls, err := h.UrlSvc.List(cache.WithCache(ctx), limit, direction, cursor)
 
 	if err != nil {
-		h.logger.Error(ctx, "error listening urls", slog.Any("error", err))
-		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
+		observability.TraceError(ctx, http.StatusText(http.StatusInternalServerError), err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -111,7 +115,8 @@ func (h UrlHandler) List(w http.ResponseWriter, r *http.Request) {
 	data, err := pagination.NewPagination(urls, limit, cursor).Encode(cursorKey)
 
 	if err != nil {
-		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
+		observability.TraceError(ctx, http.StatusText(http.StatusInternalServerError), err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -130,27 +135,56 @@ func (h UrlHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 
 	if err != nil {
-		observability.HTTPError(ctx, w, http.StatusBadRequest, err)
+		observability.TraceError(ctx, http.StatusText(http.StatusBadRequest), err)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	url, err := h.UrlSvc.GetByID(cache.WithCache(ctx), id)
 
 	if errors.Is(err, db.ErrDBResourceNotFound) {
-		observability.HTTPError(ctx, w, http.StatusNotFound, err)
+		observability.TraceError(ctx, http.StatusText(http.StatusNotFound), err)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	} else if err != nil {
-		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
+		observability.TraceError(ctx, http.StatusText(http.StatusInternalServerError), err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	data, err := json.Marshal(url)
 
 	if err != nil {
-		observability.HTTPError(ctx, w, http.StatusInternalServerError, err)
+		observability.TraceError(ctx, http.StatusText(http.StatusInternalServerError), err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func (h UrlHandler) Redirect(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	code := r.PathValue("code")
+
+	if code == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	url, err := h.UrlSvc.GetByCode(cache.WithCache(ctx), code)
+
+	if errors.Is(err, db.ErrDBResourceNotFound) {
+		observability.TraceError(ctx, http.StatusText(http.StatusNotFound), err)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	} else if err != nil {
+		observability.TraceError(ctx, http.StatusText(http.StatusInternalServerError), err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Location", url.Target)
+	w.WriteHeader(http.StatusFound)
 }

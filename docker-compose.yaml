@@ -4,6 +4,11 @@ services:
   postgres-primary:
     image: bitnami/postgresql:latest
     container_name: pg-primary
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 1g
     ports:
       - "5432:5432"
     environment:
@@ -13,6 +18,8 @@ services:
       POSTGRESQL_USERNAME: postgres
       POSTGRESQL_PASSWORD: postgres
       POSTGRESQL_DATABASE: tiny_url
+      POSTGRESQL_SHARED_BUFFERS: 128MB
+      POSTGRESQL_EFFECTIVE_CACHE_SIZE: 256MB
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -24,6 +31,11 @@ services:
   postgres-replica:
     image: bitnami/postgresql:latest
     container_name: pg-replica
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 1g
     ports:
       - "5433:5432"
     depends_on:
@@ -35,6 +47,8 @@ services:
       POSTGRESQL_MASTER_HOST: postgres-primary
       POSTGRESQL_MASTER_PORT_NUMBER: 5432
       POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_SHARED_BUFFERS: 128MB
+      POSTGRESQL_EFFECTIVE_CACHE_SIZE: 256MB
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -46,6 +60,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 512m
     ports:
       - "6379:6379"
     volumes:
@@ -59,6 +78,11 @@ services:
   dd-agent:
     image: datadog/agent:7.55.1
     container_name: dd-agent
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 512m
     ports:
       - "4317:4317/tcp"
       - "4318:4318/tcp"
@@ -96,6 +120,11 @@ services:
       args:
         VERSION: ${APP_VERSION:-0.0.1}
     container_name: app
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 512m
     image: tiny-url:local
     labels:
       com.datadoghq.ad.logs: >
@@ -113,6 +142,11 @@ services:
       - DB_REPLICA_PORT=5432
     ports:
       - "8080:8080"
+    healthcheck:
+          test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+          interval: 5s
+          timeout: 1s
+          retries: 3
     depends_on:
       - redis
       - dd-agent

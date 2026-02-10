@@ -80,4 +80,26 @@ func TestUrlService(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, model.URL{ID: 1, Code: "1", Target: "target1", CreatedAt: url.CreatedAt, UpdatedAt: url.UpdatedAt}, *url)
 	})
+
+	t.Run("url get by code", func(t *testing.T) {
+		fake := test.NewFakeDependencies()
+		svc := service.NewUrlService(fake.Repositories(), fake.Observer())
+
+		fake.MockUrlGetById()
+		url, err := svc.GetByCode(ctx, "1")
+
+		assert.NoError(t, err)
+		assert.Equal(t, model.URL{ID: 1, Code: "1", Target: "target1", CreatedAt: url.CreatedAt, UpdatedAt: url.UpdatedAt}, *url)
+	})
+
+	t.Run("url get by code from cache", func(t *testing.T) {
+		fake := test.NewFakeDependencies()
+		svc := service.NewUrlService(fake.Repositories(), fake.Observer())
+
+		fake.CacheBackend.Value = `{"id": 1, "Code": "1", "target": "target1", "created_at": "2024-01-01T00:00:00Z", "updated_at": "2024-01-01T00:00:00Z"}`
+		url, err := svc.GetByCode(cache.WithCache(ctx), "1")
+
+		assert.NoError(t, err)
+		assert.Equal(t, model.URL{ID: 1, Code: "1", Target: "target1", CreatedAt: url.CreatedAt, UpdatedAt: url.UpdatedAt}, *url)
+	})
 }

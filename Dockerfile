@@ -15,14 +15,16 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     -o app cmd/api/main.go
 
 
-FROM gcr.io/distroless/base-debian12
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+ && apt-get install -y curl \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY --from=builder /app/app /app/app
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
-USER nonroot:nonroot
 
 EXPOSE 8080
 

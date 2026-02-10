@@ -24,7 +24,6 @@ func main() {
 	defer stop()
 
 	conf := config.NewConfiguration()
-
 	observer := observability.NewObserver(version, conf)
 
 	if err := observer.Startup(ctx); err != nil {

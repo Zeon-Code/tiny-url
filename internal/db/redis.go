@@ -10,6 +10,7 @@ import (
 )
 
 type RedisBackend interface {
+	Ping(context.Context) *redis.StatusCmd
 	Get(context.Context, string) *redis.StringCmd
 	Del(context.Context, ...string) *redis.IntCmd
 	Incr(context.Context, string) *redis.IntCmd
@@ -28,13 +29,24 @@ type RedisClient struct {
 }
 
 func NewRedisClientFromConfig(conf config.DatabaseConfiguration, observer observability.Observer) (*RedisClient, error) {
-	dns, err := conf.DSN()
+	dsn, err := conf.DSN()
 
 	if err != nil {
 		return nil, err
 	}
 
-	rdb, err := observability.NewInstrumentedRedis(observer, dns)
+	opt, err := redis.ParseURL(dsn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	opt.DialerRetries = 3
+	opt.DialTimeout = 50 * time.Millisecond
+	opt.ReadTimeout = 100 * time.Millisecond
+	opt.WriteTimeout = 100 * time.Millisecond
+
+	rdb, err := observability.NewInstrumentedRedis(opt, observer)
 
 	if err != nil {
 		return nil, err
@@ -114,4 +126,20 @@ func (p RedisClient) Incr(ctx context.Context, key string) (int64, error) {
 // Returns a mapped cache error for consistent error handling.
 func (p RedisClient) Close() error {
 	return mapCacheError(p.backend.Close())
+}
+
+// Ping checks the connectivity and responsiveness of the cache backend.
+//
+// It sends a lightweight ping command to Redis to verify that the
+// connection is alive and ready to accept requests.
+//
+// Returns a mapped cache error for consistent error handling.
+func (p RedisClient) Ping(ctx context.Context) error {
+	err := p.backend.Ping(ctx).Err()
+
+	if err != nil {
+		return mapCacheError(err)
+	}
+
+	return nil
 }

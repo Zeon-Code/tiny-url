@@ -2,17 +2,14 @@ package observability
 
 import (
 	"context"
-	"net/http"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
-func HTTPError(ctx context.Context, response http.ResponseWriter, statusCode int, err error) {
+func TraceError(ctx context.Context, reason string, err error) {
 	span := trace.SpanFromContext(ctx)
 
+	span.SetStatus(codes.Error, reason)
 	span.RecordError(err, trace.WithStackTrace(true))
-	span.SetStatus(codes.Error, http.StatusText(statusCode))
-
-	http.Error(response, http.StatusText(statusCode), statusCode)
 }

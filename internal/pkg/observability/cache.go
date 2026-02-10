@@ -5,13 +5,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func NewInstrumentedRedis(observer Observer, dsn string) (*redis.Client, error) {
-	opt, err := redis.ParseURL(dsn)
-
-	if err != nil {
-		return nil, err
-	}
-
+func NewInstrumentedRedis(opt *redis.Options, observer Observer) (*redis.Client, error) {
 	rdb := redis.NewClient(opt)
 
 	if err := redisotel.InstrumentTracing(rdb); err != nil {
@@ -22,5 +16,5 @@ func NewInstrumentedRedis(observer Observer, dsn string) (*redis.Client, error) 
 		return nil, err
 	}
 
-	return rdb, err
+	return rdb, nil
 }

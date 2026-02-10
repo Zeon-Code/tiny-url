@@ -97,4 +97,22 @@ func TestRedisCacheClient(t *testing.T) {
 
 		assert.Equal(t, db.ErrCacheUnavailable, err)
 	})
+
+	t.Run("proxy ping command", func(t *testing.T) {
+		fake := test.NewFakeDependencies()
+		fake.CacheBackend.Value = int64(1)
+
+		err := fake.Cache().Ping(ctx)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("proxy ping command with error", func(t *testing.T) {
+		fake := test.NewFakeDependencies()
+		fake.CacheBackend.Err = redis.ErrClosed
+
+		err := fake.Cache().Ping(ctx)
+
+		assert.Equal(t, db.ErrCacheUnavailable, err)
+	})
 }
