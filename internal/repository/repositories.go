@@ -16,6 +16,10 @@ type Repositories struct {
 	memory   db.SQLReader
 }
 
+// Shutdown gracefully closes all resources associated with the Repositories.
+// It attempts to close both the database and in-memory storage if they are initialized.
+// Any errors encountered during closure are aggregated and returned.
+// If no errors occur, Shutdown returns nil.
 func (r Repositories) Shutdown() error {
 	var err error
 
