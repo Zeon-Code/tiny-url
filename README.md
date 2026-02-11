@@ -1,15 +1,39 @@
 # Tiny URL
-A high-performance URL shortening service written in Go, designed for simplicity, scalability, and extensibility.
 
-## Architecture
+A high‑performance, lightweight URL shortening service written in **Go**.  
+Designed with **simplicity, scalability, and extensibility** in mind.
 
-This project follows a pragmatic layered architecture focused on simplicity, performance, and maintainability. The structure is intentionally lightweight and avoids unnecessary abstractions that add complexity without clear benefits. See [doc/architecture](doc/architecture.md) for details.
+---
 
-# TODO
+## 🚀 Features
 
-[] Add project documentation.
-[] Add tests.
-[] Add CI/CD pipeline.
-[] Implement URL analytics.
-[] Implement primary-replica database setup.
-[] Add monitoring and alerting.
+✔️ Shorten long URLs into short, memorable links  
+✔️ Fast and efficient implementation in Go  
+✔️ Clean, pragmatic layered architecture  
+✔️ Designed for extension (analytics, metrics, etc.)
+
+> 🔧 Current core functionality focuses on URL shortening & redirection.
+
+---
+
+## 🧠 Architecture
+
+This project uses a simple layered architecture that balances readability with performance.  
+For more details, see the [doc/architecture](doc/architecture.md) documentation.
+
+---
+
+## 🧪 Getting Started
+
+### 📦 Prerequisites
+
+You’ll need:
+
+- Go (1.24+ recommended)
+- The usual Go toolchain
+
+Clone the repo:
+
+```bash
+git clone https://github.com/zeon-code/tiny-url.git
+```
