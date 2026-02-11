@@ -47,7 +47,7 @@ paths:
             schema:
               type: object
               properties:
-                long_url:
+                target:
                   type: string
                   format: uri
                   example: "https://www.google.com"
