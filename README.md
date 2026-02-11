@@ -30,9 +30,9 @@ For more details, see the [doc/architecture](doc/architecture.md) documentation.
 
 ---
 
-## 🧪 Getting Started
+## 📦 Getting Started
 
-### 📦 Prerequisites
+####  Prerequisites
 
 You’ll need:
 
@@ -45,7 +45,7 @@ Clone the repo:
 git clone https://github.com/zeon-code/tiny-url.git
 ```
 
-### Running the Service
+#### Running the Service
 
 Navigate to the project directory:
 
@@ -60,7 +60,7 @@ make run
 ```
 The service will start on `http://localhost:8080`.
 
-### Testing
+#### Testing
 Run tests with:
 
 ```bash
@@ -69,7 +69,7 @@ make test
 
 This will execute all unit tests and display the results.
 
-### Migration
+#### Migration
 Run migrations with:
 
 ```bash
@@ -84,7 +84,7 @@ make new-migration name=add_users_table
 
 This will create a new migration file in the `migrations` directory with the name `add_users_table`.
 
-### Live documentation (Swagger UI)
+#### Live documentation (Swagger UI)
 
 Access the interactive API documentation at:
 
