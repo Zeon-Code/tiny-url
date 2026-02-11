@@ -1,0 +1,159 @@
+openapi: 3.0.3
+info:
+  title: URL Shortener API
+  description: An API to manage shortened URLs.
+  version: 0.0.1
+
+paths:
+  /r/{code}:
+    get:
+      summary: Redirect to original URL
+      description: Takes a short code and redirects the user to the destination URL.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "gEj"
+      responses:
+        "302":
+          description: Redirecting to the destination URL.
+        "404":
+          description: Short code not found.
+
+  /api/v1/url/:
+    get:
+      summary: List all URLs
+      tags:
+        - URL Management
+      responses:
+        "200":
+          description: A list of shortened URLs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/URLResponse'
+    post:
+      summary: Create a shortened URL
+      tags:
+        - URL Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                long_url:
+                  type: string
+                  format: uri
+                  example: "https://www.google.com"
+      responses:
+        "201":
+          description: URL successfully shortened.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URLResponse'
+
+  /api/v1/url/{id}:
+    get:
+      summary: Get URL by ID
+      tags:
+        - URL Management
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        "200":
+          description: URL details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URLResponse'
+        "404":
+          description: URL ID not found.
+
+  /health/ready:
+    get:
+      summary: Readiness Probe
+      description: Check if the application is ready to handle traffic (e.g., DB connection is up).
+      tags:
+        - Monitoring
+      responses:
+        "200":
+          description: Service is ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /health/live:
+    get:
+      summary: Liveness Probe
+      description: Check if the application process is alive.
+      tags:
+        - Monitoring
+      responses:
+        "200":
+          description: Service is alive.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+components:
+  schemas:
+    URLResponse:
+      type: object
+      description: Detailed representation of a shortened URL resource.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Internal unique identifier for the URL record.
+          example: 12345
+        code:
+          type: string
+          description: The unique alphanumeric slug used in the redirect path (e.g., /r/{code}).
+          example: "gEj"
+          minLength: 1
+        target:
+          type: string
+          format: uri
+          description: The destination URL where the user will be redirected.
+          example: "https://www.google.com"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp in ISO 8601 format indicating when the URL was first shortened.
+          example: "2024-05-20T14:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp in ISO 8601 format indicating the last time the target or metadata was modified.
+          example: "2024-05-21T09:30:00Z"
+
+    HealthStatus:
+      type: object
+      description: Current operational status of the service component.
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: The operational state of the application or its dependencies.
+          enum: [alive, ready, not_ready]
+          example: "ready"
+        reason:
+          type: string
+          description: A specific diagnostic code or message explaining why the service is not in a 'ready' state.
+          enum: [db_unavailable, db_replica_unavailable]
+          example: "db_unavailable"
