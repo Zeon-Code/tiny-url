@@ -5,6 +5,13 @@ Designed with **simplicity, scalability, and extensibility** in mind.
 
 ---
 
+## 📖 API Documentation
+
+*   **Interactive Playground:** [Open Documentation 🚀](https://zeon-code.github.io/tiny-url/)
+*   **OpenAPI Spec:** [`openapi.yaml`](./openapi.yaml)
+
+---
+
 ## 🚀 Features
 
 ✔️ Shorten long URLs into short, memorable links  
