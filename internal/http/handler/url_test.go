@@ -44,7 +44,7 @@ func TestUrlHandler(t *testing.T) {
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/url/", nil)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
 
 		fake.MockUrlList()
 		router.ServeHTTP(rec, req)
@@ -74,7 +74,7 @@ func TestUrlHandler(t *testing.T) {
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/url/", nil)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
 
 		query := req.URL.Query()
 		query.Add("cursor", ">1")
@@ -109,7 +109,7 @@ func TestUrlHandler(t *testing.T) {
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/url/1", nil)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
 
 		fake.MockUrlGetById()
 		router.ServeHTTP(rec, req)
