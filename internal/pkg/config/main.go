@@ -27,7 +27,7 @@ func (c AppConfiguration) ReplicaDatabase() DatabaseConfiguration {
 }
 
 func (c AppConfiguration) Metric() MetricConfiguration {
-	return NewDatadogConfiguration()
+	return NewOtelConfiguration()
 }
 
 func (c AppConfiguration) Log() Log {

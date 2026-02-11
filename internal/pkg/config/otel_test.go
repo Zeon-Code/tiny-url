@@ -8,8 +8,8 @@ import (
 	"github.com/zeon-code/tiny-url/internal/pkg/config"
 )
 
-func TestDatadogConfiguration(t *testing.T) {
-	conf := config.NewDatadogConfiguration()
+func TestOtelConfiguration(t *testing.T) {
+	conf := config.NewOtelConfiguration()
 
 	t.Run("should return metric environment", func(t *testing.T) {
 		os.Setenv("ENV", "dev")
@@ -26,8 +26,8 @@ func TestDatadogConfiguration(t *testing.T) {
 	})
 
 	t.Run("should return metric integration", func(t *testing.T) {
-		os.Setenv("METRIC_INTEGRATION", "integration")
-		defer os.Unsetenv("METRIC_INTEGRATION")
+		os.Setenv("TELEMETRY_INTEGRATION", "integration")
+		defer os.Unsetenv("TELEMETRY_INTEGRATION")
 
 		host, err := conf.Integration()
 		assert.NoError(t, err)
@@ -40,8 +40,8 @@ func TestDatadogConfiguration(t *testing.T) {
 	})
 
 	t.Run("should return metric host", func(t *testing.T) {
-		os.Setenv("METRIC_HOST", "host")
-		defer os.Unsetenv("METRIC_HOST")
+		os.Setenv("TELEMETRY_HOST", "host")
+		defer os.Unsetenv("TELEMETRY_HOST")
 
 		host, err := conf.Host()
 		assert.NoError(t, err)
@@ -54,8 +54,8 @@ func TestDatadogConfiguration(t *testing.T) {
 	})
 
 	t.Run("should return metric port", func(t *testing.T) {
-		os.Setenv("METRIC_PORT", "1")
-		defer os.Unsetenv("METRIC_PORT")
+		os.Setenv("TELEMETRY_PORT", "1")
+		defer os.Unsetenv("TELEMETRY_PORT")
 
 		port, err := conf.Port()
 		assert.NoError(t, err)
@@ -63,8 +63,8 @@ func TestDatadogConfiguration(t *testing.T) {
 	})
 
 	t.Run("should return error when port is not an integer", func(t *testing.T) {
-		os.Setenv("METRIC_PORT", "port")
-		defer os.Unsetenv("METRIC_PORT")
+		os.Setenv("TELEMETRY_PORT", "port")
+		defer os.Unsetenv("TELEMETRY_PORT")
 
 		_, err := conf.Port()
 		assert.Error(t, err)
