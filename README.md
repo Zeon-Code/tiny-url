@@ -7,8 +7,8 @@ Designed with **simplicity, scalability, and extensibility** in mind.
 
 ## 📖 API Documentation
 
-*   **Interactive Playground:** [Open Documentation 🚀](https://zeon-code.github.io/tiny-url/)
-*   **OpenAPI Spec:** [`openapi.yaml`](./docs/openapi.spec.yaml)
+*   **Interactive Playground:** [Open Documentation](https://zeon-code.github.io/tiny-url/)
+*   **OpenAPI Spec:** [`openapi.spec.yaml`](./docs/openapi.spec.yaml)
 
 ---
 
