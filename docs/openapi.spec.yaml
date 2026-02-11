@@ -13,6 +13,8 @@ paths:
     get:
       summary: Redirect to original URL
       description: Takes a short code and redirects the user to the destination URL.
+      tags:
+        - Redirect
       parameters:
         - name: code
           in: path
