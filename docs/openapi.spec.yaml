@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: URL Shortener API
-  description: An API to manage shortened URLs.
+  description: A high-performance URL shortening service written in Go, designed for simplicity, scalability, and extensibility.
   version: 0.0.1
 
 servers:
